@@ -1,46 +1,28 @@
-import pandas as pd
 from pathlib import Path
 import matplotlib.pyplot as plt
 
-# Paths
-INBOX = Path.home() / "Documents/AI/finance/inbox"
-OUT = Path.home() / "Documents/AI/finance"
-OUT.mkdir(exist_ok=True)
+from finance_helpers import (
+    FinancePaths,
+    add_year_month,
+    dedupe_activity,
+    load_activity_frames,
+    normalize_activity,
+)
 
-# Load all activity CSVs
-files = sorted(INBOX.glob("activity*.csv"))
-dfs = []
+PATHS = FinancePaths.default()
+PATHS.ensure_output_dir()
 
-for f in files:
-    df = pd.read_csv(f)
-    df["source_file"] = f.name
-    dfs.append(df)
+df = load_activity_frames(PATHS.inbox)
+df = normalize_activity(df)
 
-df = pd.concat(dfs, ignore_index=True)
-
-# Normalize columns
-df["Date"] = pd.to_datetime(df["Date"])
-df["Amount"] = df["Amount"].astype(float)
-
-# Safe deduplication key
-dedupe_cols = [
-    "Date",
-    "Description",
-    "Amount",
-    "Appears On Your Statement As"
-]
-
-before = len(df)
-df = df.drop_duplicates(subset=dedupe_cols)
-after = len(df)
-
-print(f"Removed {before - after} duplicate rows")
+df, removed = dedupe_activity(df)
+print(f"Removed {removed} duplicate rows")
 
 # Add Year-Month for grouping
-df["YearMonth"] = df["Date"].dt.to_period("M").astype(str)
+df = add_year_month(df)
 
 # Save combined clean file
-combined_path = OUT / "combined_clean.csv"
+combined_path = PATHS.base / "combined_clean.csv"
 df.to_csv(combined_path, index=False)
 
 # Aggregate by category
@@ -50,7 +32,7 @@ by_category = (
       .sort_values()
 )
 
-by_category_path = OUT / "by_category.csv"
+by_category_path = PATHS.base / "by_category.csv"
 by_category.to_csv(by_category_path)
 
 # Aggregate by month
@@ -60,7 +42,7 @@ by_month = (
       .sort_index()
 )
 
-by_month_path = OUT / "by_month.csv"
+by_month_path = PATHS.base / "by_month.csv"
 by_month.to_csv(by_month_path)
 
 # ---- Graphs ----
@@ -71,7 +53,7 @@ by_category.plot(kind="barh")
 plt.title("Total Spend by Category")
 plt.xlabel("Amount")
 plt.tight_layout()
-plt.savefig(OUT / "spend_by_category.png")
+plt.savefig(PATHS.base / "spend_by_category.png")
 plt.close()
 
 # Monthly total spend
@@ -81,7 +63,7 @@ plt.title("Monthly Total Spend")
 plt.xlabel("Month")
 plt.ylabel("Amount")
 plt.tight_layout()
-plt.savefig(OUT / "monthly_spend.png")
+plt.savefig(PATHS.base / "monthly_spend.png")
 plt.close()
 
 # Monthly stacked category spend
@@ -101,7 +83,7 @@ plt.title("Monthly Spend by Category")
 plt.xlabel("Month")
 plt.ylabel("Amount")
 plt.tight_layout()
-plt.savefig(OUT / "monthly_category_stacked.png")
+plt.savefig(PATHS.base / "monthly_category_stacked.png")
 plt.close()
 
-print("Outputs written to:", OUT)
+print("Outputs written to:", PATHS.base)
