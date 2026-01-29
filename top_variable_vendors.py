@@ -1,9 +1,12 @@
-import pandas as pd
 from pathlib import Path
 import matplotlib.pyplot as plt
 
-BASE = Path.home() / "Documents/AI/finance"
-df = pd.read_csv(BASE / "combined_with_new_categories.csv")
+import pandas as pd
+
+from finance_helpers import FinancePaths
+
+PATHS = FinancePaths.default()
+df = pd.read_csv(PATHS.base / "combined_with_new_categories.csv")
 
 # Only variable spend
 df = df[df["SpendType"] == "Variable"]
@@ -23,7 +26,7 @@ plot_data = top.copy()
 plot_data["Other"] = other
 
 # Save table
-out_csv = BASE / "top_variable_vendors.csv"
+out_csv = PATHS.base / "top_variable_vendors.csv"
 plot_data.to_csv(out_csv)
 
 # Plot
@@ -32,8 +35,8 @@ plot_data.sort_values().plot(kind="barh")
 plt.title("Top Variable Spend by Vendor")
 plt.xlabel("Amount")
 plt.tight_layout()
-plt.savefig(BASE / "top_variable_vendors.png")
+plt.savefig(PATHS.base / "top_variable_vendors.png")
 plt.close()
 
 print("Wrote:", out_csv)
-print("Wrote:", BASE / "top_variable_vendors.png")
+print("Wrote:", PATHS.base / "top_variable_vendors.png")

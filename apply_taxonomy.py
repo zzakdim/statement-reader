@@ -1,8 +1,11 @@
-import pandas as pd
 from pathlib import Path
 
-BASE = Path.home() / "Documents/AI/finance"
-df = pd.read_csv(BASE / "combined_clean.csv")
+import pandas as pd
+
+from finance_helpers import FinancePaths
+
+PATHS = FinancePaths.default()
+df = pd.read_csv(PATHS.base / "combined_clean.csv")
 
 # Merge rules from Qwen (cleaned)
 MERGE_RULES = {
@@ -44,7 +47,7 @@ df["NewCategory"] = df["NewCategory"].fillna("Other")
 df["SpendType"] = df["NewCategory"].map(FIXED_VARIABLE).fillna("Variable")
 
 # Save result
-out = BASE / "combined_with_new_categories.csv"
+out = PATHS.base / "combined_with_new_categories.csv"
 df.to_csv(out, index=False)
 
 print("Wrote:", out)

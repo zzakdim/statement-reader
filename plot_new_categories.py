@@ -1,9 +1,12 @@
-import pandas as pd
 from pathlib import Path
 import matplotlib.pyplot as plt
 
-BASE = Path.home() / "Documents/AI/finance"
-df = pd.read_csv(BASE / "combined_with_new_categories.csv")
+import pandas as pd
+
+from finance_helpers import FinancePaths
+
+PATHS = FinancePaths.default()
+df = pd.read_csv(PATHS.base / "combined_with_new_categories.csv")
 
 # Parse dates
 df["Date"] = pd.to_datetime(df["Date"])
@@ -23,7 +26,7 @@ by_cat.plot(kind="barh")
 plt.title("Total Spend by Category")
 plt.xlabel("Amount")
 plt.tight_layout()
-plt.savefig(BASE / "new_spend_by_category.png")
+plt.savefig(PATHS.base / "new_spend_by_category.png")
 plt.close()
 
 # -------------------------
@@ -41,7 +44,7 @@ plt.title("Monthly Spend: Fixed vs Variable")
 plt.xlabel("Month")
 plt.ylabel("Amount")
 plt.tight_layout()
-plt.savefig(BASE / "monthly_fixed_vs_variable.png")
+plt.savefig(PATHS.base / "monthly_fixed_vs_variable.png")
 plt.close()
 
 # -------------------------
@@ -60,7 +63,7 @@ plt.title("Monthly Variable Spend Trend")
 plt.xlabel("Month")
 plt.ylabel("Amount")
 plt.tight_layout()
-plt.savefig(BASE / "variable_spend_trend.png")
+plt.savefig(PATHS.base / "variable_spend_trend.png")
 plt.close()
 
-print("Graphs written to", BASE)
+print("Graphs written to", PATHS.base)
