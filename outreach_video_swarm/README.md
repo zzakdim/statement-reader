@@ -48,12 +48,14 @@ Recommended sequence:
 Optional helper command:
 
 ```bash
+python -m outreach_video_swarm.tools.run new --series quick_tips --topic cold-email-hooks
 python tools/run.py new --series quick_tips --topic cold-email-hooks
 ```
 
 After writing `brief.md` and `outline.md`, generate metadata:
 
 ```bash
+python -m outreach_video_swarm.tools.run meta quick_tips-cold-email-hooks
 python tools/run.py meta quick_tips-cold-email-hooks
 ```
 
@@ -64,6 +66,7 @@ python tools/run.py meta quick_tips-cold-email-hooks
 Current render workflow is a placeholder:
 
 ```bash
+python -m outreach_video_swarm.tools.render --video-id quick_tips-cold-email-hooks
 python tools/render.py --video-id quick_tips-cold-email-hooks
 ```
 
@@ -79,6 +82,7 @@ python tools/render.py --video-id quick_tips-cold-email-hooks
 4. Upload with:
 
 ```bash
+python -m outreach_video_swarm.tools.run publish <video_id> --access-token <TOKEN>
 python tools/run.py publish <video_id> --access-token <TOKEN>
 ```
 
@@ -91,6 +95,7 @@ Optional flags:
 Store daily analytics rows into `metrics/analytics.db`:
 
 ```bash
+python -m outreach_video_swarm.tools.analytics_pull --input metrics/daily_stats.json
 python tools/analytics_pull.py --input metrics/daily_stats.json
 ```
 
@@ -102,6 +107,7 @@ Use `--date YYYY-MM-DD` to override the payload date.
 Generate a suggested controlled test plan from recent analytics:
 
 ```bash
+python -m outreach_video_swarm.tools.experiment_planner --window-days 14
 python tools/experiment_planner.py --window-days 14
 ```
 

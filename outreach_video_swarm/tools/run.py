@@ -1,6 +1,9 @@
 """Workflow CLI for outreach_video_swarm.
 
 Usage examples:
+  python -m outreach_video_swarm.tools.run new --series quick_tips --topic cold-email-hooks
+  python -m outreach_video_swarm.tools.run meta quick_tips-cold-email-hooks
+  python -m outreach_video_swarm.tools.run publish quick_tips-cold-email-hooks --access-token <TOKEN>
   python tools/run.py new --series quick_tips --topic cold-email-hooks
   python tools/run.py meta quick_tips-cold-email-hooks
   python tools/run.py publish quick_tips-cold-email-hooks --access-token <TOKEN>
@@ -16,6 +19,7 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
+from outreach_video_swarm.tools.utils import project_root
 from utils import project_root
 
 TEMPLATE_FILES = [
@@ -154,6 +158,9 @@ def generate_metadata(video_folder: str) -> Path:
     fallback_topic = _topic_from_video_folder(video_path.name)
     title = working_title or f"{fallback_topic} | Quick Guide"
 
+    description_parts = [
+        part for part in [goal, core_message, f"CTA: {cta}" if cta else ""] if part
+    ]
     description_parts = [part for part in [goal, core_message, f"CTA: {cta}" if cta else ""] if part]
     description = " ".join(description_parts) or "Short practical video based on brief and outline."
 
@@ -225,6 +232,11 @@ def publish_video(video_folder: str, access_token: str, video_file: str, categor
     if not local_video_path.exists():
         raise FileNotFoundError(f"Video file not found: {local_video_path}")
 
+    upload_url = "https://www.googleapis.com/upload/youtube/v3/videos?" + urllib.parse.urlencode(
+        {
+            "part": "snippet,status",
+            "uploadType": "resumable",
+        }
     upload_url = (
         "https://www.googleapis.com/upload/youtube/v3/videos?"
         + urllib.parse.urlencode(

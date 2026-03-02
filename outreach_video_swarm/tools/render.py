@@ -7,6 +7,8 @@ Expected default structure per video:
     output/final.mp4       # render target (created)
 
 Usage:
+  python -m outreach_video_swarm.tools.render --video-id quick_tips-cold-email-hooks
+  python -m outreach_video_swarm.tools.render --video-id quick_tips-cold-email-hooks --audio voiceover.mp3
   python tools/render.py --video-id quick_tips-cold-email-hooks
   python tools/render.py --video-id quick_tips-cold-email-hooks --audio voiceover.mp3
 """
@@ -19,6 +21,7 @@ import subprocess
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
+from outreach_video_swarm.tools.utils import project_root
 from utils import project_root
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
@@ -73,6 +76,14 @@ def render(video_id: str, images_dir_name: str, audio_name: str, output_name: st
         raise FileNotFoundError(f"Images directory does not exist: {images_dir}")
 
     image_paths = sorted(
+        path
+        for path in images_dir.iterdir()
+        if path.is_file() and path.suffix.lower() in IMAGE_EXTENSIONS
+    )
+    if not image_paths:
+        raise FileNotFoundError(
+            f"No images found in {images_dir} (supported: {sorted(IMAGE_EXTENSIONS)})"
+        )
         path for path in images_dir.iterdir() if path.is_file() and path.suffix.lower() in IMAGE_EXTENSIONS
     )
     if not image_paths:
@@ -133,6 +144,17 @@ def render(video_id: str, images_dir_name: str, audio_name: str, output_name: st
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Render outreach videos with ffmpeg")
     parser.add_argument("--video-id", required=True, help="Folder name under videos/")
+    parser.add_argument(
+        "--images-dir", default="images", help="Relative images folder inside video folder"
+    )
+    parser.add_argument(
+        "--audio", default="narration.wav", help="Relative audio file inside video folder"
+    )
+    parser.add_argument(
+        "--output",
+        default="output/final.mp4",
+        help="Relative output video path inside video folder",
+    )
     parser.add_argument("--images-dir", default="images", help="Relative images folder inside video folder")
     parser.add_argument("--audio", default="narration.wav", help="Relative audio file inside video folder")
     parser.add_argument("--output", default="output/final.mp4", help="Relative output video path inside video folder")

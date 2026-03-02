@@ -24,6 +24,8 @@ Expected JSON shape:
 }
 
 Usage:
+  python -m outreach_video_swarm.tools.analytics_pull --input metrics/daily_stats.json
+  python -m outreach_video_swarm.tools.analytics_pull --input metrics/daily_stats.json --date 2026-03-01
   python tools/analytics_pull.py --input metrics/daily_stats.json
   python tools/analytics_pull.py --input metrics/daily_stats.json --date 2026-03-01
 """
@@ -36,6 +38,7 @@ import sqlite3
 from datetime import date
 from pathlib import Path
 
+from outreach_video_swarm.tools.utils import project_root
 from utils import project_root
 
 
