@@ -8,6 +8,14 @@ channel:
 publishing:
   platform: youtube
   cadence: weekly
+  name: "Your Channel Name"
+  niche: "Your niche (e.g., AI tools, business outreach, education)"
+  language: "en"
+  tone: "clear, friendly, practical"
+
+publishing:
+  platform: "youtube"
+  cadence: "weekly"
   default_duration_seconds: 90
 
 branding:

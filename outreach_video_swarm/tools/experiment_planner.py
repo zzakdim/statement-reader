@@ -7,6 +7,9 @@ Usage:
   python -m outreach_video_swarm.tools.experiment_planner
   python -m outreach_video_swarm.tools.experiment_planner --window-days 14 --limit-videos 20
   python -m outreach_video_swarm.tools.experiment_planner --output experiments/next_plan.md
+  python tools/experiment_planner.py
+  python tools/experiment_planner.py --window-days 14 --limit-videos 20
+  python tools/experiment_planner.py --output experiments/next_plan.md
 """
 
 from __future__ import annotations
@@ -20,6 +23,9 @@ if __package__ is None or __package__ == "":
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from outreach_video_swarm.tools.utils import project_root
+from pathlib import Path
+
+from utils import project_root
 
 
 def default_db_path() -> Path:
@@ -186,6 +192,11 @@ def build_parser() -> argparse.ArgumentParser:
         default="experiments/next_plan.md",
         help="Output markdown path (repo-relative or absolute)",
     )
+    parser = argparse.ArgumentParser(description="Suggest controlled experiment variations from analytics")
+    parser.add_argument("--db", default=str(default_db_path()), help="Path to sqlite db (default metrics/analytics.db)")
+    parser.add_argument("--window-days", type=int, default=14, help="Lookback window in days")
+    parser.add_argument("--limit-videos", type=int, default=10, help="How many videos to inspect for low-performance lists")
+    parser.add_argument("--output", default="experiments/next_plan.md", help="Output markdown path (repo-relative or absolute)")
     return parser
 
 
@@ -206,6 +217,7 @@ def main() -> None:
             summary = fetch_summary(
                 connection, window_days=args.window_days, limit_videos=args.limit_videos
             )
+            summary = fetch_summary(connection, window_days=args.window_days, limit_videos=args.limit_videos)
 
         if summary["row_count"] == 0:
             raise ValueError("No rows found in selected window; pull analytics first")

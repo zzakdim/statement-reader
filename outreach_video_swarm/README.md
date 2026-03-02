@@ -20,6 +20,11 @@ Simple, documented scaffold for planning, scripting, rendering, and tracking out
 
 ```bash
 mkdir -p videos/2026-03-01__quick_tips__cold-email-hooks
+1. Pick an ID format, e.g. `2026-03-01-cold-email-hook`.
+2. Create a folder under `videos/`:
+
+```bash
+mkdir -p videos/2026-03-01-cold-email-hook
 ```
 
 3. Copy templates into that folder:
@@ -31,6 +36,12 @@ cp templates/outline.md videos/2026-03-01__quick_tips__cold-email-hooks/
 cp templates/script.md videos/2026-03-01__quick_tips__cold-email-hooks/
 cp templates/on_screen.txt videos/2026-03-01__quick_tips__cold-email-hooks/
 cp templates/metadata.json videos/2026-03-01__quick_tips__cold-email-hooks/
+cp templates/brief.md videos/2026-03-01-cold-email-hook/
+cp templates/sources.md videos/2026-03-01-cold-email-hook/
+cp templates/outline.md videos/2026-03-01-cold-email-hook/
+cp templates/script.md videos/2026-03-01-cold-email-hook/
+cp templates/on_screen.txt videos/2026-03-01-cold-email-hook/
+cp templates/metadata.json videos/2026-03-01-cold-email-hook/
 ```
 
 4. Fill out `brief.md` first, then `sources.md`, then `outline.md`.
@@ -49,12 +60,14 @@ Optional helper command:
 
 ```bash
 python -m outreach_video_swarm.tools.run new --series quick_tips --topic cold-email-hooks
+python tools/run.py new --series quick_tips --topic cold-email-hooks
 ```
 
 After writing `brief.md` and `outline.md`, generate metadata:
 
 ```bash
 python -m outreach_video_swarm.tools.run meta 2026-03-01__quick_tips__cold-email-hooks
+python tools/run.py meta quick_tips-cold-email-hooks
 ```
 
 (Stub command today; extend it later to automate draft generation.)
@@ -65,6 +78,7 @@ Current render workflow is a placeholder:
 
 ```bash
 python -m outreach_video_swarm.tools.render --video-id 2026-03-01__quick_tips__cold-email-hooks
+python tools/render.py --video-id quick_tips-cold-email-hooks
 ```
 
 - Put slide images in `videos/<video_id>/images/` and narration audio in `videos/<video_id>/narration.wav` (or pass `--images-dir` / `--audio`).
@@ -80,6 +94,7 @@ python -m outreach_video_swarm.tools.render --video-id 2026-03-01__quick_tips__c
 
 ```bash
 python -m outreach_video_swarm.tools.run publish <video_id> --access-token <TOKEN>
+python tools/run.py publish <video_id> --access-token <TOKEN>
 ```
 
 Optional flags:
@@ -100,6 +115,7 @@ Store daily analytics rows into `metrics/analytics.db`:
 
 ```bash
 python -m outreach_video_swarm.tools.analytics_pull --input metrics/daily_stats.json
+python tools/analytics_pull.py --input metrics/daily_stats.json
 ```
 
 Input JSON should contain `date` and `rows` (one row per video/platform).
@@ -111,6 +127,7 @@ Generate a suggested controlled test plan from recent analytics:
 
 ```bash
 python -m outreach_video_swarm.tools.experiment_planner --window-days 14
+python tools/experiment_planner.py --window-days 14
 ```
 
 This reads `metrics/analytics.db` and writes recommendations to `experiments/next_plan.md`.

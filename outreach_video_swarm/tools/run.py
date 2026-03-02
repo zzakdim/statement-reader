@@ -4,6 +4,9 @@ Usage examples:
   python -m outreach_video_swarm.tools.run new --series quick_tips --topic cold-email-hooks
   python -m outreach_video_swarm.tools.run meta 2026-03-01__quick_tips__cold-email-hooks
   python -m outreach_video_swarm.tools.run publish 2026-03-01__quick_tips__cold-email-hooks --access-token <TOKEN>
+  python tools/run.py new --series quick_tips --topic cold-email-hooks
+  python tools/run.py meta quick_tips-cold-email-hooks
+  python tools/run.py publish quick_tips-cold-email-hooks --access-token <TOKEN>
 """
 
 from __future__ import annotations
@@ -22,6 +25,11 @@ if __package__ is None or __package__ == "":
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from outreach_video_swarm.tools.utils import project_root
+import urllib.parse
+import urllib.request
+from pathlib import Path
+
+from utils import project_root
 
 TEMPLATE_FILES = [
     "brief.md",
@@ -40,6 +48,7 @@ def create_video_folder(series_id: str, topic_slug: str) -> Path:
 
     day = date.today().isoformat()
     video_id = f"{day}__{series_id}__{topic_slug}"
+    video_id = f"{series_id}-{topic_slug}"
     destination = videos_dir / video_id
 
     if destination.exists():
@@ -135,6 +144,16 @@ def _series_from_video_folder(video_folder_name: str) -> str:
 def _topic_from_video_folder(video_folder_name: str) -> str:
     _, topic_slug = _parse_video_folder_name(video_folder_name)
     return topic_slug.replace("-", " ").strip().title()
+def _series_from_video_folder(video_folder_name: str) -> str:
+    if "-" in video_folder_name:
+        return video_folder_name.split("-", 1)[0]
+    return "quick_tips"
+
+
+def _topic_from_video_folder(video_folder_name: str) -> str:
+    if "-" in video_folder_name:
+        return video_folder_name.split("-", 1)[1].replace("-", " ").strip().title()
+    return video_folder_name.replace("-", " ").strip().title()
 
 
 def _resolve_video_path(video_folder: str) -> Path:
@@ -176,6 +195,7 @@ def generate_metadata(video_folder: str) -> Path:
     description_parts = [
         part for part in [goal, core_message, f"CTA: {cta}" if cta else ""] if part
     ]
+    description_parts = [part for part in [goal, core_message, f"CTA: {cta}" if cta else ""] if part]
     description = " ".join(description_parts) or "Short practical video based on brief and outline."
 
     tags = [
@@ -251,6 +271,14 @@ def publish_video(video_folder: str, access_token: str, video_file: str, categor
             "part": "snippet,status",
             "uploadType": "resumable",
         }
+    upload_url = (
+        "https://www.googleapis.com/upload/youtube/v3/videos?"
+        + urllib.parse.urlencode(
+            {
+                "part": "snippet,status",
+                "uploadType": "resumable",
+            }
+        )
     )
 
     payload = _build_youtube_payload(metadata, category_id)
