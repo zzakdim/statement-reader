@@ -24,8 +24,8 @@ Expected JSON shape:
 }
 
 Usage:
-  python tools/analytics_pull.py --input metrics/daily_stats.json
-  python tools/analytics_pull.py --input metrics/daily_stats.json --date 2026-03-01
+  python -m outreach_video_swarm.tools.analytics_pull --input metrics/daily_stats.json
+  python -m outreach_video_swarm.tools.analytics_pull --input metrics/daily_stats.json --date 2026-03-01
 """
 
 from __future__ import annotations
@@ -33,10 +33,14 @@ from __future__ import annotations
 import argparse
 import json
 import sqlite3
+import sys
 from datetime import date
 from pathlib import Path
 
-from utils import project_root
+if __package__ is None or __package__ == "":
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+from outreach_video_swarm.tools.utils import project_root
 
 
 def db_path() -> Path:

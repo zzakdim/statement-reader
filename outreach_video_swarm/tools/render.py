@@ -7,8 +7,8 @@ Expected default structure per video:
     output/final.mp4       # render target (created)
 
 Usage:
-  python tools/render.py --video-id quick_tips-cold-email-hooks
-  python tools/render.py --video-id quick_tips-cold-email-hooks --audio voiceover.mp3
+  python -m outreach_video_swarm.tools.render --video-id quick_tips-cold-email-hooks
+  python -m outreach_video_swarm.tools.render --video-id quick_tips-cold-email-hooks --audio voiceover.mp3
 """
 
 from __future__ import annotations
@@ -16,10 +16,15 @@ from __future__ import annotations
 import argparse
 import shlex
 import subprocess
+import sys
 from pathlib import Path
+
+if __package__ is None or __package__ == "":
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from tempfile import NamedTemporaryFile
 
-from utils import project_root
+from outreach_video_swarm.tools.utils import load_config, project_root
+from outreach_video_swarm.tools.validate_config import validate_config
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 
@@ -61,7 +66,24 @@ def build_concat_manifest(image_paths: list[Path], seconds_per_image: float) -> 
     return "\n".join(lines) + "\n"
 
 
-def render(video_id: str, images_dir_name: str, audio_name: str, output_name: str) -> Path:
+def compute_seconds_per_image(
+    narration_duration_seconds: float,
+    image_count: int,
+    default_seconds_per_slide: float,
+) -> float:
+    if image_count <= 0:
+        raise ValueError("image_count must be greater than zero")
+
+    minimum_slide_seconds = 0.1
+    if narration_duration_seconds > 0:
+        return max(narration_duration_seconds / image_count, minimum_slide_seconds)
+
+    return max(default_seconds_per_slide, minimum_slide_seconds)
+
+
+def render(
+    video_id: str, images_dir_name: str, audio_name: str, output_name: str, config: dict
+) -> Path:
     root = project_root()
     video_dir = root / "videos" / video_id
 
@@ -73,10 +95,14 @@ def render(video_id: str, images_dir_name: str, audio_name: str, output_name: st
         raise FileNotFoundError(f"Images directory does not exist: {images_dir}")
 
     image_paths = sorted(
-        path for path in images_dir.iterdir() if path.is_file() and path.suffix.lower() in IMAGE_EXTENSIONS
+        path
+        for path in images_dir.iterdir()
+        if path.is_file() and path.suffix.lower() in IMAGE_EXTENSIONS
     )
     if not image_paths:
-        raise FileNotFoundError(f"No images found in {images_dir} (supported: {sorted(IMAGE_EXTENSIONS)})")
+        raise FileNotFoundError(
+            f"No images found in {images_dir} (supported: {sorted(IMAGE_EXTENSIONS)})"
+        )
 
     audio_path = video_dir / audio_name
     if not audio_path.exists():
@@ -86,12 +112,23 @@ def render(video_id: str, images_dir_name: str, audio_name: str, output_name: st
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     duration = audio_duration_seconds(audio_path)
-    seconds_per_image = max(duration / len(image_paths), 0.1)
+    default_seconds_per_slide = float(
+        config.get("render", {}).get("seconds_per_slide_default", 3.0)
+    )
+    seconds_per_image = compute_seconds_per_image(
+        narration_duration_seconds=duration,
+        image_count=len(image_paths),
+        default_seconds_per_slide=default_seconds_per_slide,
+    )
 
     manifest_content = build_concat_manifest(image_paths, seconds_per_image)
     with NamedTemporaryFile("w", suffix=".txt", delete=False) as manifest:
         manifest.write(manifest_content)
         manifest_path = Path(manifest.name)
+
+    fps = int(config.get("video", {}).get("fps", 30))
+    resolution = str(config.get("video", {}).get("resolution", "1920x1080"))
+    width, height = resolution.split("x", 1)
 
     ffmpeg_command = [
         "ffmpeg",
@@ -105,9 +142,9 @@ def render(video_id: str, images_dir_name: str, audio_name: str, output_name: st
         "-i",
         str(audio_path),
         "-vf",
-        "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,format=yuv420p",
+        f"scale={width}:{height}:force_original_aspect_ratio=decrease,pad={width}:{height}:(ow-iw)/2:(oh-ih)/2,format=yuv420p",
         "-r",
-        "30",
+        str(fps),
         "-c:v",
         "libx264",
         "-preset",
@@ -133,9 +170,17 @@ def render(video_id: str, images_dir_name: str, audio_name: str, output_name: st
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Render outreach videos with ffmpeg")
     parser.add_argument("--video-id", required=True, help="Folder name under videos/")
-    parser.add_argument("--images-dir", default="images", help="Relative images folder inside video folder")
-    parser.add_argument("--audio", default="narration.wav", help="Relative audio file inside video folder")
-    parser.add_argument("--output", default="output/final.mp4", help="Relative output video path inside video folder")
+    parser.add_argument(
+        "--images-dir", default="images", help="Relative images folder inside video folder"
+    )
+    parser.add_argument(
+        "--audio", default="narration.wav", help="Relative audio file inside video folder"
+    )
+    parser.add_argument(
+        "--output",
+        default="output/final.mp4",
+        help="Relative output video path inside video folder",
+    )
     return parser
 
 
@@ -144,11 +189,14 @@ def main() -> None:
     args = parser.parse_args()
 
     try:
+        validate_config()
+        config = load_config()
         output_path = render(
             video_id=args.video_id,
             images_dir_name=args.images_dir,
             audio_name=args.audio,
             output_name=args.output,
+            config=config,
         )
     except (FileNotFoundError, RuntimeError, subprocess.CalledProcessError) as exc:
         parser.exit(status=1, message=f"Error: {exc}\n")

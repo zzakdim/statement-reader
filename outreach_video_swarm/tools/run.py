@@ -1,9 +1,9 @@
 """Workflow CLI for outreach_video_swarm.
 
 Usage examples:
-  python tools/run.py new --series quick_tips --topic cold-email-hooks
-  python tools/run.py meta quick_tips-cold-email-hooks
-  python tools/run.py publish quick_tips-cold-email-hooks --access-token <TOKEN>
+  python -m outreach_video_swarm.tools.run new --series quick_tips --topic cold-email-hooks
+  python -m outreach_video_swarm.tools.run meta 2026-03-01__quick_tips__cold-email-hooks
+  python -m outreach_video_swarm.tools.run publish 2026-03-01__quick_tips__cold-email-hooks --access-token <TOKEN>
 """
 
 from __future__ import annotations
@@ -12,11 +12,17 @@ import argparse
 import json
 import re
 import shutil
+import sys
 import urllib.parse
 import urllib.request
+from datetime import date
 from pathlib import Path
 
-from utils import project_root
+if __package__ is None or __package__ == "":
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+from outreach_video_swarm.tools.utils import load_config, project_root
+from outreach_video_swarm.tools.validate_config import validate_config
 
 TEMPLATE_FILES = [
     "brief.md",
@@ -33,7 +39,8 @@ def create_video_folder(series_id: str, topic_slug: str) -> Path:
     templates_dir = root / "templates"
     videos_dir = root / "videos"
 
-    video_id = f"{series_id}-{topic_slug}"
+    day = date.today().isoformat()
+    video_id = f"{day}__{series_id}__{topic_slug}"
     destination = videos_dir / video_id
 
     if destination.exists():
@@ -106,16 +113,29 @@ def _extract_key_points(brief_text: str) -> list[str]:
     return [part.strip() for part in fallback.split(";") if part.strip()]
 
 
-def _series_from_video_folder(video_folder_name: str) -> str:
+def _parse_video_folder_name(video_folder_name: str) -> tuple[str, str]:
+    if "__" in video_folder_name:
+        parts = video_folder_name.split("__", 2)
+        if len(parts) == 3:
+            _, series_id, topic_slug = parts
+            return series_id or "quick_tips", topic_slug or "untitled"
+
+    # Backward compatibility for older <series>-<topic> style names.
     if "-" in video_folder_name:
-        return video_folder_name.split("-", 1)[0]
-    return "quick_tips"
+        series_id, topic_slug = video_folder_name.split("-", 1)
+        return series_id or "quick_tips", topic_slug or "untitled"
+
+    return "quick_tips", video_folder_name or "untitled"
+
+
+def _series_from_video_folder(video_folder_name: str) -> str:
+    series_id, _ = _parse_video_folder_name(video_folder_name)
+    return series_id
 
 
 def _topic_from_video_folder(video_folder_name: str) -> str:
-    if "-" in video_folder_name:
-        return video_folder_name.split("-", 1)[1].replace("-", " ").strip().title()
-    return video_folder_name.replace("-", " ").strip().title()
+    _, topic_slug = _parse_video_folder_name(video_folder_name)
+    return topic_slug.replace("-", " ").strip().title()
 
 
 def _resolve_video_path(video_folder: str) -> Path:
@@ -154,7 +174,9 @@ def generate_metadata(video_folder: str) -> Path:
     fallback_topic = _topic_from_video_folder(video_path.name)
     title = working_title or f"{fallback_topic} | Quick Guide"
 
-    description_parts = [part for part in [goal, core_message, f"CTA: {cta}" if cta else ""] if part]
+    description_parts = [
+        part for part in [goal, core_message, f"CTA: {cta}" if cta else ""] if part
+    ]
     description = " ".join(description_parts) or "Short practical video based on brief and outline."
 
     tags = [
@@ -180,16 +202,20 @@ def generate_metadata(video_folder: str) -> Path:
     return metadata_path
 
 
-def _privacy_status(metadata: dict) -> str:
-    publish_status = str(metadata.get("publish", {}).get("status", "draft")).lower()
-    if publish_status == "draft":
-        return "private"
+def _privacy_status(metadata: dict, config: dict) -> str:
+    default_privacy = str(config.get("upload", {}).get("privacy_default", "private")).lower()
+    if default_privacy not in {"private", "public", "unlisted"}:
+        default_privacy = "private"
+
+    publish_status = str(metadata.get("publish", {}).get("status", "")).lower()
+    if not publish_status or publish_status == "draft":
+        return default_privacy
     if publish_status in {"private", "public", "unlisted"}:
         return publish_status
-    return "private"
+    return default_privacy
 
 
-def _build_youtube_payload(metadata: dict, category_id: str) -> dict:
+def _build_youtube_payload(metadata: dict, category_id: str, config: dict) -> dict:
     payload = {
         "snippet": {
             "title": metadata.get("title", "Untitled Video"),
@@ -198,7 +224,7 @@ def _build_youtube_payload(metadata: dict, category_id: str) -> dict:
             "categoryId": category_id,
         },
         "status": {
-            "privacyStatus": _privacy_status(metadata),
+            "privacyStatus": _privacy_status(metadata, config),
         },
     }
 
@@ -209,7 +235,9 @@ def _build_youtube_payload(metadata: dict, category_id: str) -> dict:
     return payload
 
 
-def publish_video(video_folder: str, access_token: str, video_file: str, category_id: str) -> str:
+def publish_video(
+    video_folder: str, access_token: str, video_file: str, category_id: str, config: dict
+) -> str:
     video_path = _resolve_video_path(video_folder)
     if not video_path.exists():
         raise FileNotFoundError(f"Video folder does not exist: {video_path}")
@@ -225,17 +253,14 @@ def publish_video(video_folder: str, access_token: str, video_file: str, categor
     if not local_video_path.exists():
         raise FileNotFoundError(f"Video file not found: {local_video_path}")
 
-    upload_url = (
-        "https://www.googleapis.com/upload/youtube/v3/videos?"
-        + urllib.parse.urlencode(
-            {
-                "part": "snippet,status",
-                "uploadType": "resumable",
-            }
-        )
+    upload_url = "https://www.googleapis.com/upload/youtube/v3/videos?" + urllib.parse.urlencode(
+        {
+            "part": "snippet,status",
+            "uploadType": "resumable",
+        }
     )
 
-    payload = _build_youtube_payload(metadata, category_id)
+    payload = _build_youtube_payload(metadata, category_id, config)
     payload_data = json.dumps(payload).encode("utf-8")
 
     init_request = urllib.request.Request(
@@ -326,6 +351,9 @@ def main() -> None:
     args = parser.parse_args()
 
     try:
+        validate_config()
+        config = load_config()
+
         if args.command == "new":
             destination = create_video_folder(args.series, args.topic)
             print(f"Created: {destination}")
@@ -338,6 +366,7 @@ def main() -> None:
                 access_token=args.access_token,
                 video_file=args.video_file,
                 category_id=args.category_id,
+                config=config,
             )
             print(f"Uploaded video id: {video_id}")
             print(f"Watch URL: https://www.youtube.com/watch?v={video_id}")

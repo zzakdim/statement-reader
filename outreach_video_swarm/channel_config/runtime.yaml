@@ -1,0 +1,13 @@
+# Frequently edited runtime parameters
+render:
+  seconds_per_slide_default: 3.0
+  target_length_range_seconds:
+    min: 45
+    max: 120
+  music_ducking_db: -12
+
+experiments:
+  explore_ratio: 0.2
+
+upload:
+  privacy_default: private
