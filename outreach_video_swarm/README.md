@@ -48,7 +48,7 @@ Recommended sequence:
 Optional helper command:
 
 ```bash
-python tools/run.py
+python tools/run.py new --series quick_tips --topic cold-email-hooks
 ```
 
 (Stub command today; extend it later to automate draft generation.)
@@ -58,11 +58,12 @@ python tools/run.py
 Current render workflow is a placeholder:
 
 ```bash
-python tools/render.py
+python tools/render.py --video-id quick_tips-cold-email-hooks
 ```
 
-- Extend `tools/render.py` to ingest `script.md`, voiceover, assets, and produce final MP4 output.
-- Keep render presets aligned with `channel_config/constraints.yaml`.
+- Put slide images in `videos/<video_id>/images/` and narration audio in `videos/<video_id>/narration.wav` (or pass `--images-dir` / `--audio`).
+- Output defaults to `videos/<video_id>/output/final.mp4` (override with `--output`).
+- Render presets should stay aligned with `channel_config/constraints.yaml`.
 
 ## Where to Put Outputs
 
