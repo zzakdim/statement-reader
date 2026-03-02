@@ -66,6 +66,21 @@ def build_concat_manifest(image_paths: list[Path], seconds_per_image: float) -> 
     return "\n".join(lines) + "\n"
 
 
+def compute_seconds_per_image(
+    narration_duration_seconds: float,
+    image_count: int,
+    default_seconds_per_slide: float,
+) -> float:
+    if image_count <= 0:
+        raise ValueError("image_count must be greater than zero")
+
+    minimum_slide_seconds = 0.1
+    if narration_duration_seconds > 0:
+        return max(narration_duration_seconds / image_count, minimum_slide_seconds)
+
+    return max(default_seconds_per_slide, minimum_slide_seconds)
+
+
 def render(
     video_id: str, images_dir_name: str, audio_name: str, output_name: str, config: dict
 ) -> Path:
@@ -100,7 +115,11 @@ def render(
     default_seconds_per_slide = float(
         config.get("render", {}).get("seconds_per_slide_default", 3.0)
     )
-    seconds_per_image = max(duration / len(image_paths), default_seconds_per_slide, 0.1)
+    seconds_per_image = compute_seconds_per_image(
+        narration_duration_seconds=duration,
+        image_count=len(image_paths),
+        default_seconds_per_slide=default_seconds_per_slide,
+    )
 
     manifest_content = build_concat_manifest(image_paths, seconds_per_image)
     with NamedTemporaryFile("w", suffix=".txt", delete=False) as manifest:
