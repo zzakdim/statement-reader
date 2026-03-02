@@ -51,6 +51,12 @@ Optional helper command:
 python tools/run.py new --series quick_tips --topic cold-email-hooks
 ```
 
+After writing `brief.md` and `outline.md`, generate metadata:
+
+```bash
+python tools/run.py meta quick_tips-cold-email-hooks
+```
+
 (Stub command today; extend it later to automate draft generation.)
 
 ## How to Render a Video
