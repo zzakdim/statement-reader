@@ -4,6 +4,9 @@ Reads `metrics/analytics.db` (from tools/analytics_pull.py), computes recent bas
 metrics, and writes a concrete plan to `experiments/next_plan.md`.
 
 Usage:
+  python -m outreach_video_swarm.tools.experiment_planner
+  python -m outreach_video_swarm.tools.experiment_planner --window-days 14 --limit-videos 20
+  python -m outreach_video_swarm.tools.experiment_planner --output experiments/next_plan.md
   python tools/experiment_planner.py
   python tools/experiment_planner.py --window-days 14 --limit-videos 20
   python tools/experiment_planner.py --output experiments/next_plan.md
@@ -13,6 +16,13 @@ from __future__ import annotations
 
 import argparse
 import sqlite3
+import sys
+from pathlib import Path
+
+if __package__ is None or __package__ == "":
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+from outreach_video_swarm.tools.utils import project_root
 from pathlib import Path
 
 from utils import project_root
@@ -162,6 +172,26 @@ def write_plan(path: Path, summary: dict, tests: list[dict], window_days: int) -
 
 
 def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Suggest controlled experiment variations from analytics"
+    )
+    parser.add_argument(
+        "--db",
+        default=str(default_db_path()),
+        help="Path to sqlite db (default metrics/analytics.db)",
+    )
+    parser.add_argument("--window-days", type=int, default=14, help="Lookback window in days")
+    parser.add_argument(
+        "--limit-videos",
+        type=int,
+        default=10,
+        help="How many videos to inspect for low-performance lists",
+    )
+    parser.add_argument(
+        "--output",
+        default="experiments/next_plan.md",
+        help="Output markdown path (repo-relative or absolute)",
+    )
     parser = argparse.ArgumentParser(description="Suggest controlled experiment variations from analytics")
     parser.add_argument("--db", default=str(default_db_path()), help="Path to sqlite db (default metrics/analytics.db)")
     parser.add_argument("--window-days", type=int, default=14, help="Lookback window in days")
@@ -184,6 +214,9 @@ def main() -> None:
             raise FileNotFoundError(f"Analytics DB not found: {db}")
 
         with sqlite3.connect(db) as connection:
+            summary = fetch_summary(
+                connection, window_days=args.window_days, limit_videos=args.limit_videos
+            )
             summary = fetch_summary(connection, window_days=args.window_days, limit_videos=args.limit_videos)
 
         if summary["row_count"] == 0:

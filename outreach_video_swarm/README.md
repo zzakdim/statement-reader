@@ -15,6 +15,11 @@ Simple, documented scaffold for planning, scripting, rendering, and tracking out
 
 ## How to Create a New Video Folder
 
+1. Use this folder ID format: `YYYY-MM-DD__<series>__<topic>` (example: `2026-03-01__quick_tips__cold-email-hooks`).
+2. Create a folder under `videos/`:
+
+```bash
+mkdir -p videos/2026-03-01__quick_tips__cold-email-hooks
 1. Pick an ID format, e.g. `2026-03-01-cold-email-hook`.
 2. Create a folder under `videos/`:
 
@@ -25,6 +30,12 @@ mkdir -p videos/2026-03-01-cold-email-hook
 3. Copy templates into that folder:
 
 ```bash
+cp templates/brief.md videos/2026-03-01__quick_tips__cold-email-hooks/
+cp templates/sources.md videos/2026-03-01__quick_tips__cold-email-hooks/
+cp templates/outline.md videos/2026-03-01__quick_tips__cold-email-hooks/
+cp templates/script.md videos/2026-03-01__quick_tips__cold-email-hooks/
+cp templates/on_screen.txt videos/2026-03-01__quick_tips__cold-email-hooks/
+cp templates/metadata.json videos/2026-03-01__quick_tips__cold-email-hooks/
 cp templates/brief.md videos/2026-03-01-cold-email-hook/
 cp templates/sources.md videos/2026-03-01-cold-email-hook/
 cp templates/outline.md videos/2026-03-01-cold-email-hook/
@@ -48,12 +59,14 @@ Recommended sequence:
 Optional helper command:
 
 ```bash
+python -m outreach_video_swarm.tools.run new --series quick_tips --topic cold-email-hooks
 python tools/run.py new --series quick_tips --topic cold-email-hooks
 ```
 
 After writing `brief.md` and `outline.md`, generate metadata:
 
 ```bash
+python -m outreach_video_swarm.tools.run meta 2026-03-01__quick_tips__cold-email-hooks
 python tools/run.py meta quick_tips-cold-email-hooks
 ```
 
@@ -64,6 +77,7 @@ python tools/run.py meta quick_tips-cold-email-hooks
 Current render workflow is a placeholder:
 
 ```bash
+python -m outreach_video_swarm.tools.render --video-id 2026-03-01__quick_tips__cold-email-hooks
 python tools/render.py --video-id quick_tips-cold-email-hooks
 ```
 
@@ -79,6 +93,7 @@ python tools/render.py --video-id quick_tips-cold-email-hooks
 4. Upload with:
 
 ```bash
+python -m outreach_video_swarm.tools.run publish <video_id> --access-token <TOKEN>
 python tools/run.py publish <video_id> --access-token <TOKEN>
 ```
 
@@ -86,11 +101,20 @@ Optional flags:
 - `--video-file output/final.mp4`
 - `--category-id 27`
 
+## Validate Channel Config
+
+Validate YAML syntax for channel config files:
+
+```bash
+python tools/validate_config.py
+```
+
 ## Metrics Pull (SQLite)
 
 Store daily analytics rows into `metrics/analytics.db`:
 
 ```bash
+python -m outreach_video_swarm.tools.analytics_pull --input metrics/daily_stats.json
 python tools/analytics_pull.py --input metrics/daily_stats.json
 ```
 
@@ -102,6 +126,7 @@ Use `--date YYYY-MM-DD` to override the payload date.
 Generate a suggested controlled test plan from recent analytics:
 
 ```bash
+python -m outreach_video_swarm.tools.experiment_planner --window-days 14
 python tools/experiment_planner.py --window-days 14
 ```
 

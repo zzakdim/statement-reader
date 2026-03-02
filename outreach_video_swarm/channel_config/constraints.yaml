@@ -1,6 +1,10 @@
 # Production and editorial constraints
 editorial:
   prohibited_claims:
+    - Unverified performance guarantees
+    - Medical/legal/financial advice
+  required_disclosures:
+    - Sponsored content must be labeled
     - "Unverified performance guarantees"
     - "Medical/legal/financial advice"
   required_disclosures:
@@ -11,6 +15,7 @@ video:
   max_duration_seconds: 180
   aspect_ratio: "16:9"
   fps: 30
+  resolution: 1920x1080
   resolution: "1920x1080"
 
 audio:
@@ -19,6 +24,8 @@ audio:
 
 assets:
   allowed_music_licenses:
+    - royalty_free
+    - custom
     - "royalty_free"
     - "custom"
   font_license_required: true
